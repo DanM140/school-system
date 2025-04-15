@@ -23,9 +23,11 @@ class User extends Authenticatable  implements FilamentUser, HasTenants
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var bool
      */
-    public $incrementing = false;
+     
+public $incrementing = false;
+  
     protected $keyType = 'string';
     protected static function boot()
     {
