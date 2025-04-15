@@ -1,0 +1,63 @@
+name: Build, test and deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  laravel-ci:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: 🛎️ Checkout code
+        uses: actions/checkout@v3
+
+      - name: ⚙️ Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3' # ✅ Latest PHP version
+          extensions: mbstring, bcmath, pdo, mysql
+          coverage: none
+
+      - name: 📦 Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: 🔐 Copy .env
+        run: cp .env.test .env
+
+      - name: 🗝️ Generate app key
+        run: php artisan key:generate
+
+      - name: 🛠️ Run migrations
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: test_db
+          DB_USERNAME: root
+          DB_PASSWORD: root
+        run: php artisan migrate --force
+
+      - name: ✅ Run PHPStan (static analysis)
+        run: vendor/bin/phpstan analyse
+
+      - name: 🧪 Run PHPUnit tests
+        run: vendor/bin/phpunit
+
+      # Optional deploy step (customize or remove if not needed)
+      - name: 🚀 Deploy to Production via SSH
+        if: success()
+        run: |
+          echo "🚀 Ready to deploy!"
+          # Example SSH command below (replace with your actual deploy script)
+          # ssh user@host 'cd /var/www/your-laravel-app && git pull origin main && php artisan migrate --force'
